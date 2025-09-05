@@ -1,0 +1,27 @@
+﻿@"
+node_modules/
+dist/
+build/
+coverage/
+*.log
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+backend/node_modules/.prisma/
+backend/prisma/dev.db
+backend/prisma/*.db-journal
+
+frontend/.vite/
+frontend/.next/
+.vite/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+frontend/public/*.pdf
+"@ | Set-Content -Encoding UTF8 .gitignore

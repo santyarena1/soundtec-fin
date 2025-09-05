@@ -1,0 +1,1 @@
+﻿// Tipos de auth - placeholder

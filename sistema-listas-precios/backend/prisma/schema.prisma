@@ -1,0 +1,92 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// backend/prisma/schema.prisma  (REEMPLAZAR SOLO EL MODELO User)
+
+
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String
+  role                UserRole
+  descuentoPct        Int       @default(0)
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+
+
+model Supplier {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  slug       String?     @unique
+  websiteUrl String?
+  isCrestron Boolean     @default(false)
+  products   Product[]
+  priceLists PriceList[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Product {
+  id               String      @id @default(uuid())
+  supplierId       String
+  supplier         Supplier    @relation(fields: [supplierId], references: [id])
+  code             String
+  name             String
+  brand            String?
+  family           String?
+  description      String?
+  photoUrl         String?
+  stockMiami       Int?
+  stockLaredo      Int?
+  manufacturerInfo Json?
+  priceItems       PriceItem[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@unique([supplierId, code])
+}
+
+model PriceList {
+  id            String      @id @default(uuid())
+  supplierId    String
+  supplier      Supplier    @relation(fields: [supplierId], references: [id])
+  sourceLabel   String?
+  sourceFileUrl String?
+  effectiveDate DateTime    @default(now())
+  rawCurrency   String      @default("USD")
+  notes         String?
+  priceItems    PriceItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model PriceItem {
+  id           String    @id @default(uuid())
+  priceListId  String
+  productId    String
+  priceList    PriceList @relation(fields: [priceListId], references: [id])
+  product      Product   @relation(fields: [productId], references: [id])
+  basePriceUsd Float
+  markupPct    Float     @default(0)
+  impuestosPct Float     @default(0)
+  ivaPct       Float     @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([priceListId, productId])
+}

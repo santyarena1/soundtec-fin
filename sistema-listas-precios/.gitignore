@@ -1,0 +1,16 @@
+﻿# Node / general
+node_modules/
+dist/
+.env
+.env.*
+.DS_Store
+.vscode/
+*.log
+
+# Frontend
+frontend-basic/node_modules/
+frontend-basic/dist/
+
+# Backend
+backend/node_modules/
+backend/dist/

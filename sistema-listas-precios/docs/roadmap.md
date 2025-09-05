@@ -1,0 +1,12 @@
+﻿# Roadmap
+- Fase 0: Entorno
+- Fase 1: Estructura (este script)
+- Fase 2: Backend base (TS, Express, CORS, logger, errores)
+- Fase 3: DB y migraciones (PostgreSQL)
+- Fase 4: Auth + RBAC (Admin/Usuario)
+- Fase 5: MÃ³dulos (usuarios, suppliers, products, pricelists)
+- Fase 6: Pricing centralizado
+- Fase 7: Scrapers (imagenes/descripcion y descarga excels)
+- Fase 8: Front bÃ¡sico
+- Fase 9: Deploy Render
+- Fase 10: Prompt IA para front pro
