@@ -1,8 +1,9 @@
 ﻿import express from 'express';
-import cors, { CorsOptions, CorsOptionsDelegate } from 'cors';
+import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
 import { prisma } from './db/connection';
 
+// Rutas importadas
 import authRouter from './modules/auth/auth.routes';
 import usersRouter from './modules/users/users.routes';
 import suppliersRouter from './modules/suppliers/suppliers.routes';
@@ -13,59 +14,36 @@ import adminUsersRouter from './admin/admin.users.routes';
 
 const app = express();
 
-/**
- * Lista blanca de orígenes permitidos para CORS.
- * En Render seteá CORS_ORIGIN con una lista separada por comas. Ej:
- *   http://localhost:5173,https://soundtec-fin.vercel.app
+/** Lista de dominios permitidos para CORS.
+ *  Configúralo en Render con la variable CORS_ORIGIN, separando con comas:
+ *  CORS_ORIGIN=http://localhost:5173,https://soundtec-fin.vercel.app,https://soundtec-buscador.onrender.com
  */
-const CORS_ENV =
-  process.env.CORS_ORIGIN ??
-  'http://localhost:5173,https://soundtec-fin.vercel.app';
-
-const allowed = (process.env.CORS_ORIGIN ?? 'http://localhost:5173,https://soundtec-fin.vercel.app')
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
-  .map(s => s.trim());
+  .map((s) => s.trim())
+  .filter(Boolean);
 
+/** Middleware para evitar cachear incorrectamente el encabezado Access-Control-Allow-Origin */
 app.use((_, res, next) => {
   res.setHeader('Vary', 'Origin');
   next();
 });
 
-const corsOptions: CorsOptions | CorsOptionsDelegate = (req, cb) => {
-  const origin = req.headers['origin'] as string | undefined;
-  // Permite herramientas sin Origin (curl/Postman)
-  if (!origin) {
-    return cb(null, {
-      origin: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: false,
-      optionsSuccessStatus: 204,
-    } as CorsOptions);
-  }
-
-  const ok = allowed.includes(origin);
-  cb(null, {
-    origin: ok,
+/** Configuración CORS. No registramos routes `app.options('*')` ni `/*` */
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // permite Postman/cURL sin header Origin
+      return cb(null, allowedOrigins.includes(origin));
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: false, // no cookies
+    credentials: false,
     optionsSuccessStatus: 204,
-  } as CorsOptions);
-};
+  }),
+);
 
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);           // Postman o fetch sin Origin
-    return cb(null, allowed.includes(origin));
-  },
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-  credentials: false,
-  optionsSuccessStatus: 204,
-}));
-
-// Parsers
+// Parseadores JSON y URL-encoded
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -82,7 +60,7 @@ app.get('/dbtest', async (_req, res, next) => {
   }
 });
 
-// Rutas
+// Rutas del negocio
 app.use('/auth', authRouter);
 app.use('/users', usersRouter);
 app.use('/suppliers', suppliersRouter);
@@ -91,9 +69,7 @@ app.use('/pricelists', pricelistsRouter);
 app.use('/priceitems', priceitemsRouter);
 app.use('/admin', adminUsersRouter);
 
-// Error handler al final
+// Manejador de errores
 app.use(errorHandler);
-
-app.options('/*', cors());
 
 export default app;
