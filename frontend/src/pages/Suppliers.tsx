@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { api } from "../lib/api"
 
 export default function Suppliers() {
@@ -43,7 +43,7 @@ export default function Suppliers() {
                 <td className="table-td">{s.name}</td>
                 <td className="table-td">{s.slug || "-"}</td>
                 <td className="table-td"><a className="text-blue-600" href={s.websiteUrl || "#"} target="_blank">{s.websiteUrl || "-"}</a></td>
-                <td className="table-td">{s.isCrestron ? "SÃ­" : "No"}</td>
+                <td className="table-td">{s.isCrestron ? "Sí" : "No"}</td>
               </tr>
             ))}
           </tbody>

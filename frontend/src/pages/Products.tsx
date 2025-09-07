@@ -1,4 +1,4 @@
-Ôªø// frontend/src/pages/Products.tsx
+// frontend/src/pages/Products.tsx
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -92,7 +92,7 @@ export default function Products() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  // B√∫squeda / paginado
+  // B˙squeda / paginado
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -102,7 +102,7 @@ export default function Products() {
   const [items, setItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Seleccionados (secci√≥n aparte fija)
+  // Seleccionados (secciÛn aparte fija)
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem("pinnedProducts") || "[]"));
@@ -124,7 +124,7 @@ export default function Products() {
     localStorage.setItem("pinnedData", JSON.stringify(pinnedData));
   }, [pinnedData]);
 
-  // Edici√≥n admin (usar strings para evitar ‚Äú0‚Äù autom√°tico)
+  // EdiciÛn admin (usar strings para evitar ì0î autom·tico)
   const [editTarget, setEditTarget] = useState<{
     productId: string;
     name: string;
@@ -150,7 +150,7 @@ export default function Products() {
       setItems(res.items);
       setTotal(res.total);
 
-      // refrescar info de seleccionados presentes en la p√°gina
+      // refrescar info de seleccionados presentes en la p·gina
       setPinnedData((old) => {
         const updated = { ...old };
         for (const p of res.items as Product[]) {
@@ -191,7 +191,7 @@ export default function Products() {
     setPinnedData({});
   }
 
-  // Tabla principal: s√≥lo no-seleccionados
+  // Tabla principal: sÛlo no-seleccionados
   const list = useMemo(
     () => items.filter((p) => !pinnedIds.has(p.id)).sort((a, b) => (a.code || "").localeCompare(b.code || "")),
     [items, pinnedIds]
@@ -230,7 +230,7 @@ export default function Products() {
         ivaPct: Number.isFinite(iva) ? iva : 0,
       });
       setLastEditedId(editTarget.productId);
-      setMsg(`‚úÖ Guardado exitoso: ${editTarget.name}`);
+      setMsg(`? Guardado exitoso: ${editTarget.name}`);
       setEditTarget(null);
       await load();
     } catch (err: any) {
@@ -271,7 +271,7 @@ export default function Products() {
       doc.setFontSize(10);
       doc.text(new Date().toLocaleString(), marginX + (logoDataUrl ? 160 : 0), 44);
 
-      // Construcci√≥n de tabla
+      // ConstrucciÛn de tabla
       const body = pinnedList.map((p) => [
         p.code || "-",
         (p.name || "-").slice(0, 80),
@@ -284,7 +284,7 @@ export default function Products() {
 
       // @ts-ignore
       doc.autoTable({
-        head: [["C√≥digo", "Producto", "Proveedor", "Admin USD", "Tu USD", "M", "L"]],
+        head: [["CÛdigo", "Producto", "Proveedor", "Admin USD", "Tu USD", "M", "L"]],
         body,
         startY: 80,
         theme: "grid",
@@ -292,8 +292,8 @@ export default function Products() {
         headStyles: { fillColor: brandColor, textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: lightRow },
         columnStyles: {
-          // ancho pensado para A4 con m√°rgenes 40pt: suma 515 aprox.
-          0: { cellWidth: 65 },  // C√≥digo
+          // ancho pensado para A4 con m·rgenes 40pt: suma 515 aprox.
+          0: { cellWidth: 65 },  // CÛdigo
           1: { cellWidth: 180 }, // Producto
           2: { cellWidth: 70 },  // Proveedor
           3: { cellWidth: 70, halign: "right" }, // Admin USD
@@ -303,11 +303,11 @@ export default function Products() {
         },
         margin: { left: marginX, right: marginX },
         didDrawPage: (data: any) => {
-          // Pie con numeraci√≥n de p√°gina
+          // Pie con numeraciÛn de p·gina
           doc.setTextColor(120);
           doc.setFontSize(10);
           doc.text(
-            `P√°gina ${doc.getNumberOfPages()}`,
+            `P·gina ${doc.getNumberOfPages()}`,
             pageW - marginX,
             pageH - 16,
             { align: "right" }
@@ -327,7 +327,7 @@ export default function Products() {
       const ts = new Date();
       const name = `productos-seleccionados-${ts.getFullYear()}${String(ts.getMonth() + 1).padStart(2, "0")}${String(ts.getDate()).padStart(2, "0")}-${String(ts.getHours()).padStart(2, "0")}${String(ts.getMinutes()).padStart(2, "0")}.pdf`;
       doc.save(name);
-      setMsg(`üìÑ PDF descargado (${pinnedList.length} productos).`);
+      setMsg(`?? PDF descargado (${pinnedList.length} productos).`);
     } catch (e: any) {
       setMsg(e.message || "No se pudo generar el PDF");
     }
@@ -338,10 +338,10 @@ export default function Products() {
       {/* Barra superior */}
       <div className="flex flex-col sm:flex-row gap-3 items-end">
         <div className="flex-1">
-          <label className="label">B√∫squeda</label>
+          <label className="label">B˙squeda</label>
           <input
             className="input mt-1"
-            placeholder="C√≥digo, nombre, marca..."
+            placeholder="CÛdigo, nombre, marca..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -356,7 +356,7 @@ export default function Products() {
           Buscar
         </button>
         <div className="ml-auto text-sm text-gray-600">
-          Total: {total} &nbsp;¬∑&nbsp; Seleccionados: {pinnedIds.size}
+          Total: {total} &nbsp;∑&nbsp; Seleccionados: {pinnedIds.size}
         </div>
       </div>
 
@@ -390,7 +390,7 @@ export default function Products() {
               <thead>
                 <tr>
                   <th className="table-th">Quitar</th>
-                  <th className="table-th">C√≥digo</th>
+                  <th className="table-th">CÛdigo</th>
                   <th className="table-th">Nombre</th>
                   <th className="table-th">Proveedor</th>
                   <th className="table-th text-right">Admin USD</th>
@@ -403,7 +403,7 @@ export default function Products() {
                   <tr key={p.id} className="border-b bg-yellow-50/40">
                     <td className="table-td">
                       <button className="btn btn-ghost" onClick={() => unpinProduct(p.id)} title="Quitar de seleccionados">
-                        ‚úï
+                        ?
                       </button>
                     </td>
                     <td className="table-td font-mono">{p.code}</td>
@@ -426,7 +426,7 @@ export default function Products() {
         )}
       </div>
 
-      {/* Panel de edici√≥n (admin) */}
+      {/* Panel de ediciÛn (admin) */}
       {isAdmin && editTarget && (
         <div className="card">
           <form onSubmit={saveEdit} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
@@ -484,7 +484,7 @@ export default function Products() {
           <thead>
             <tr>
               <th className="table-th">Fijar</th>
-              <th className="table-th">C√≥digo</th>
+              <th className="table-th">CÛdigo</th>
               <th className="table-th">Nombre</th>
               <th className="table-th">Marca</th>
               <th className="table-th">Familia</th>
@@ -502,7 +502,7 @@ export default function Products() {
                 <tr key={p.id} className={`border-b ${isEdited ? "bg-green-50" : ""}`}>
                   <td className="table-td">
                     <button className="btn btn-ghost" title="Fijar arriba" onClick={() => pinProduct(p)}>
-                      ‚òÖ
+                      ?
                     </button>
                   </td>
                   <td className="table-td font-mono">{p.code}</td>
@@ -536,12 +536,12 @@ export default function Products() {
         {loading && <div className="text-sm text-gray-500 mt-2">Cargando...</div>}
       </div>
 
-      {/* Paginaci√≥n */}
+      {/* PaginaciÛn */}
       <div className="flex items-center gap-3">
         <button className="btn btn-ghost" onClick={() => setPage((p) => Math.max(1, p - 1))}>
           Anterior
         </button>
-        <div>P√°gina {page}</div>
+        <div>P·gina {page}</div>
         <button
           className="btn btn-ghost"
           onClick={() => setPage((p) => (p * pageSize < total ? p + 1 : p))}

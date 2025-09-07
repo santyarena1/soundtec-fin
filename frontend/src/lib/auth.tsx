@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { api } from "./api"
 
 type User = { id: string; email: string; role: "admin"|"user"; descuentoPct: number }

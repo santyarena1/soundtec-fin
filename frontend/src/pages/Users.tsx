@@ -20,7 +20,7 @@ type User = {
 };
 
 const API_BASE: string =
-  (import.meta as any).env?.VITE_API_BASE || "http://localhost:3000";
+  (import.meta as any).env?.VITE_API_BASE || "https://soundtec-buscador.onrender.com";
 
 function authHeaders() {
   const t = localStorage.getItem("token");

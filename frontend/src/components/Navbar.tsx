@@ -1,4 +1,4 @@
-﻿import { Link, NavLink } from "react-router-dom"
+import { Link, NavLink } from "react-router-dom"
 import { useAuth, logout } from "../lib/auth"
 
 export default function Navbar() {

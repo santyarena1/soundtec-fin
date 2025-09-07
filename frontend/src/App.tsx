@@ -1,6 +1,6 @@
-ï»¿// frontend/src/App.tsx
-// Header con logo (sin tÃ­tulo), PageTitle debajo, navegaciÃ³n completa y footer azul oscuro.
-// Incluye SuppliersPage e ImportXlsxPage mÃ­nimas. NO crea otro <Router>.
+// frontend/src/App.tsx
+// Header con logo (sin título), PageTitle debajo, navegación completa y footer azul oscuro.
+// Incluye SuppliersPage e ImportXlsxPage mínimas. NO crea otro <Router>.
 
 import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -78,7 +78,7 @@ function Header() {
     >
       <div style={{ background: BRAND.primary, height: 3 }} />
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-        {/* Logo solo (sin tÃ­tulo) */}
+        {/* Logo solo (sin título) */}
         <div className="flex items-center gap-3">
           {logo ? (
             <img src={logo} alt="Soundtec" className="h-12 w-auto object-contain" />
@@ -87,7 +87,7 @@ function Header() {
           )}
         </div>
 
-        {/* NavegaciÃ³n */}
+        {/* Navegación */}
         <nav className="ml-6 flex items-center gap-1">
           <NavLink to="/" end className={({isActive}) => linkActive(isActive)}>Productos</NavLink>
           {user?.role === "admin" && (
@@ -103,7 +103,7 @@ function Header() {
         <div className="ml-auto">
           {user ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">{user.email} Â· <span className="uppercase">{user.role}</span></span>
+              <span className="text-sm text-gray-600">{user.email} · <span className="uppercase">{user.role}</span></span>
               <button className="btn btn-ghost" onClick={logout}>Salir</button>
             </div>
           ) : (
@@ -113,8 +113,8 @@ function Header() {
                 <input className="input h-9" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" />
               </div>
               <div>
-                <label className="label">ContraseÃ±a</label>
-                <input className="input h-9" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+                <label className="label">Contraseña</label>
+                <input className="input h-9" type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="•••••••" />
               </div>
               <button className="btn btn-primary h-9 mt-[22px]">Entrar</button>
               {err && <span className="text-xs text-red-600">{err}</span>}
@@ -148,7 +148,7 @@ function Footer() {
     <footer className="w-full" style={{ background: BRAND.footerBg }}>
       <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-between">
         <span className="text-lg" style={{ color: BRAND.footerText }}>
-          Â© {new Date().getFullYear()} Soundtec
+          © {new Date().getFullYear()} Soundtec
         </span>
         <a
           href="https://soundtec.com.ar"
@@ -176,12 +176,12 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  if (!checked) return <div className="p-6">Cargandoâ€¦</div>;
+  if (!checked) return <div className="p-6">Cargando…</div>;
   if (role !== "admin") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
-/* ----------------- PÃ¡ginas mÃ­nimas si no existen ------------------ */
+/* ----------------- Páginas mínimas si no existen ------------------ */
 function SuppliersPage() {
   const [items, setItems] = useState<any[]>([]);
   const [name, setName] = useState("");
@@ -231,7 +231,7 @@ function SuppliersPage() {
               <tr key={s.id} className="border-b">
                 <td className="table-td">{s.name}</td>
                 <td className="table-td"><a className="text-sky-700 hover:underline" href={s.websiteUrl} target="_blank" rel="noreferrer">{s.websiteUrl || "-"}</a></td>
-                <td className="table-td">{s.isCrestron ? "SÃ­" : "No"}</td>
+                <td className="table-td">{s.isCrestron ? "Sí" : "No"}</td>
               </tr>
             ))}
           </tbody>
@@ -248,12 +248,12 @@ function ImportXlsxPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   async function submit() {
-    if (!file) { setMsg("SeleccionÃ¡ un archivo .xlsx"); return; }
-    if (!supplierName) { setMsg("IngresÃ¡ el nombre del proveedor"); return; }
+    if (!file) { setMsg("Seleccioná un archivo .xlsx"); return; }
+    if (!supplierName) { setMsg("Ingresá el nombre del proveedor"); return; }
     setMsg(null);
     try {
       const res = await api.importXlsx(file, supplierName, sourceLabel);
-      setMsg(`Importado OK Â· ${res.imported} productos Â· Lista: ${res.priceList?.id || "-"}`);
+      setMsg(`Importado OK · ${res.imported} productos · Lista: ${res.priceList?.id || "-"}`);
     } catch (e: any) { setMsg(e.message || "Error al importar"); }
   }
 
