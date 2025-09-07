@@ -1,5 +1,5 @@
 interface ImportMetaEnv {
-  VITE_API_BASE_URL?: string;
+  VITE_API_URL?: string;
 }
 
 // Augment the global ImportMeta interface
@@ -9,7 +9,8 @@ declare global {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://soundtec-buscador.onrender.com';
+const API_BASE = import.meta.env.VITE_API_URL || "https://soundtec-buscador.onrender.com";
+
 // axios.create({ baseURL: API_BASE, ... })
 
 
