@@ -123,7 +123,8 @@ W "$front\index.html" @'
 
 # ---------------- env example ----------------
 W "$front\.env.example" @'
-VITE_API_BASE=http://localhost:3000
+VITE_API_URL=https://soundtec-buscador.onrender.com
+
 '@
 
 # ---------------- styles ----------------
@@ -209,7 +210,8 @@ export default function App() {
 
 # ---------------- lib/api.ts ----------------
 W "$front\src\lib\api.ts" @'
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:3000"
+const API_BASE = (import.meta as any).env?.VITE_API_URL=https://soundtec-buscador.onrender.com
+
 
 function getToken() {
   try { return localStorage.getItem("token") } catch { return null }

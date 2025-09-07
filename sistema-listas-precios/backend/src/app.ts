@@ -22,20 +22,15 @@ const CORS_ENV =
   process.env.CORS_ORIGIN ??
   'http://localhost:5173,https://soundtec-fin.vercel.app';
 
-const ALLOWED_ORIGINS = CORS_ENV.split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
+const allowed = (process.env.CORS_ORIGIN ?? 'http://localhost:5173,https://soundtec-fin.vercel.app')
+  .split(',')
+  .map(s => s.trim());
 
-// Evita cache incorrecto de CORS en proxies/CDN
 app.use((_, res, next) => {
   res.setHeader('Vary', 'Origin');
   next();
 });
 
-/**
- * CORS + preflight primero, antes de cualquier router.
- * Usamos Bearer token, así que credentials = false.
- */
 const corsOptions: CorsOptions | CorsOptionsDelegate = (req, cb) => {
   const origin = req.headers['origin'] as string | undefined;
   // Permite herramientas sin Origin (curl/Postman)
@@ -49,7 +44,7 @@ const corsOptions: CorsOptions | CorsOptionsDelegate = (req, cb) => {
     } as CorsOptions);
   }
 
-  const ok = ALLOWED_ORIGINS.includes(origin);
+  const ok = allowed.includes(origin);
   cb(null, {
     origin: ok,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -59,8 +54,16 @@ const corsOptions: CorsOptions | CorsOptionsDelegate = (req, cb) => {
   } as CorsOptions);
 };
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // responde preflight
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);           // Postman o fetch sin Origin
+    return cb(null, allowed.includes(origin));
+  },
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: false,
+  optionsSuccessStatus: 204,
+}));
 
 // Parsers
 app.use(express.json({ limit: '5mb' }));
@@ -90,5 +93,7 @@ app.use('/admin', adminUsersRouter);
 
 // Error handler al final
 app.use(errorHandler);
+
+app.options('/*', cors());
 
 export default app;
