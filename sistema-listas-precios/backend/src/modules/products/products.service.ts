@@ -1,4 +1,4 @@
-﻿import prisma from '../../db/connection';
+﻿import { prisma } from '../../db/connection';
 import { calcularPrecio } from '../../utils/pricing';
 
 export async function getProductById(id: string, userDescuentoPct: number) {

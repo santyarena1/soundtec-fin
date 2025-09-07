@@ -1,7 +1,7 @@
 ﻿import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
-import prisma from './db/connection';
+import { prisma } from './db/connection';
 
 import authRouter from './modules/auth/auth.routes';
 import usersRouter from './modules/users/users.routes';

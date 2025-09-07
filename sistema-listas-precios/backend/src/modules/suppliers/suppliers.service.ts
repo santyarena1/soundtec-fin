@@ -1,4 +1,4 @@
-﻿import prisma from '../../db/connection';
+﻿import { prisma } from '../../db/connection';
 
 export async function listSuppliers() {
   return prisma.supplier.findMany({

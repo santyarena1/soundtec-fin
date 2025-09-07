@@ -1,4 +1,4 @@
-﻿import prisma from '../../db/connection';
+﻿import { prisma } from '../../db/connection';
 import bcrypt from 'bcryptjs';
 
 type CreateUserInput = {
