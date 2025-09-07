@@ -26,7 +26,7 @@ model User {
   role                 UserRole
   descuentoPct         Int       @default(0)
   isActive             Boolean   @default(true)
-  mustChangePassword   Boolean   @default(false)
+  
   passwordUpdatedAt    DateTime?
   lastPasswordResetAt  DateTime?
   lastPasswordResetBy  String?

@@ -25,10 +25,6 @@ export async function bootstrapAdmin() {
       role: "admin",
       descuentoPct: 0,
       isActive: true,
-      mustChangePassword: false,
-      passwordUpdatedAt: new Date(),
-      lastPasswordResetAt: null,
-      lastPasswordResetBy: null,
     },
   });
 

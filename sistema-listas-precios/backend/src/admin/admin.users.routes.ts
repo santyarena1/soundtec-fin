@@ -1,223 +1,207 @@
 // backend/src/admin/admin.users.routes.ts
-// ✅ Actualizado para forzar cambio de contraseña en próximo login y auditar resets.
-// - Al CREAR usuario: mustChangePassword = true (si no querés forzar, podés cambiarlo aquí).
-// - Al RESET (manual o auto): mustChangePassword = true, lastPasswordResetAt/by se registran.
-// - NO se expone la contraseña actual (por seguridad), solo se devuelve una temporal cuando se genera.
-
-import express, { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs'; // sin binarios nativos
-import { PrismaClient } from '@prisma/client';
+import { Router } from "express";
+import { PrismaClient, UserRole } from "@prisma/client";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
-const router = express.Router();
+const router = Router();
 
-type Role = 'admin' | 'user';
-type JwtUser = {
-  sub: string;
-  role: Role;
-  email: string;
-  descuentoPct: number;
-  iat?: number;
-  exp?: number;
-};
-
-declare global {
-  namespace Express {
-    interface Request {
-      auth?: JwtUser;
-    }
-  }
-}
-
-/* -------------------- Auth middlewares -------------------- */
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+/* ========== Middlewares mínimos ========== */
+function requireAuth(req: any, res: any, next: any) {
   try {
-    const hdr = req.headers.authorization || '';
-    const [, token] = hdr.split(' ');
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return res.status(500).json({ error: 'JWT_SECRET not set' });
-    const payload = jwt.verify(token, secret) as JwtUser;
-    req.auth = payload;
+    const hdr = String(req.headers["authorization"] || "");
+    const parts = hdr.split(" ");
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
+      return res.status(401).json({ error: "Missing token" });
+    }
+    const token = parts[1];
+    const secret = process.env.JWT_SECRET || "devsecret";
+    const payload = jwt.verify(token, secret) as any;
+    req.auth = { sub: payload.sub, role: payload.role, email: payload.email };
     next();
   } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: "Invalid token" });
   }
 }
 
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.auth) return res.status(401).json({ error: 'Unauthorized' });
-  if (req.auth.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+function requireAdmin(req: any, res: any, next: any) {
+  if (!req.auth || req.auth.role !== "admin") {
+    return res.status(403).json({ error: "Admin requerido" });
+  }
   next();
 }
 
-/* -------------------- Helpers -------------------- */
-function isValidEmail(email?: string) {
-  return !!email && typeof email === 'string' && email.includes('@') && email.includes('.');
-}
-function clampPct(n: any) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return 0;
-  return Math.max(0, Math.min(100, x));
-}
-function randomPassword(len = 10) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
-  let out = '';
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
+/* ========== GET /admin/users  (lista con paginación) ========== */
+router.get("/users", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const page = Math.max(parseInt(String(req.query.page ?? "1")), 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(String(req.query.pageSize ?? "20")), 1),
+      100
+    );
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
 
-/* -------------------- Rutas Admin Usuarios -------------------- */
+    const [items, total] = await prisma.$transaction([
+      prisma.user.findMany({
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        // ⚠️ Solo campos que existen en tu modelo User
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          descuentoPct: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      prisma.user.count(),
+    ]);
 
-/** Listar usuarios */
-router.get('/users', requireAuth, requireAdmin, async (_req, res) => {
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      descuentoPct: true,
-      isActive: true,
-      mustChangePassword: true,
-      passwordUpdatedAt: true,
-      lastPasswordResetAt: true,
-      lastPasswordResetBy: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-  res.json({ items: users });
+    return res.json({ ok: true, items, total, page, pageSize });
+  } catch (err) {
+    console.error("[GET /admin/users] error:", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
 });
 
-/** Crear usuario (admin) */
-router.post('/users', requireAuth, requireAdmin, async (req, res) => {
+/* ========== POST /admin/users  (crear usuario) ========== */
+router.post("/users", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { email, role, descuentoPct, isActive, password } = req.body as {
+    const { email, password, role, descuentoPct } = (req.body || {}) as {
       email?: string;
-      role?: Role;
-      descuentoPct?: number;
-      isActive?: boolean;
       password?: string;
+      role?: UserRole;
+      descuentoPct?: number;
     };
 
-    if (!isValidEmail(email)) return res.status(400).json({ error: 'email inválido' });
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ error: "email y password son obligatorios" });
+    }
 
-    const r: Role = role === 'admin' ? 'admin' : 'user';
-    const desc = clampPct(descuentoPct);
-    const active = isActive === undefined ? true : Boolean(isActive);
+    const exists = await prisma.user.findUnique({ where: { email } });
+    if (exists) return res.status(409).json({ error: "Email ya registrado" });
 
-    const plain = password && typeof password === 'string' && password.length >= 6
-      ? password
-      : randomPassword(10);
+    const hash = await bcrypt.hash(password, 10);
 
-    const passwordHash = await bcrypt.hash(plain, 10);
-
-    // 👇 Por política: forzar cambio al primer login
     const user = await prisma.user.create({
       data: {
-        email: email!.trim().toLowerCase(),
-        role: r,
-        descuentoPct: desc,
-        isActive: active,
-        passwordHash,
-        mustChangePassword: true,           // ← fuerza cambio al primer login
-        passwordUpdatedAt: null,            // aún no fue cambiada por el usuario
-        lastPasswordResetAt: null,
-        lastPasswordResetBy: null,
+        email,
+        passwordHash: hash,
+        role: (role as UserRole) || "user",
+        descuentoPct: Number.isFinite(descuentoPct) ? (descuentoPct as number) : 0,
+        isActive: true,
       },
       select: {
-        id: true, email: true, role: true, descuentoPct: true, isActive: true,
-        mustChangePassword: true, passwordUpdatedAt: true,
-        lastPasswordResetAt: true, lastPasswordResetBy: true,
-        createdAt: true, updatedAt: true,
+        id: true,
+        email: true,
+        role: true,
+        descuentoPct: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
-    res.status(201).json({ user, temporaryPassword: password ? undefined : plain });
-  } catch (e: any) {
-    if (e.code === 'P2002') return res.status(409).json({ error: 'Email ya en uso' });
-    console.error('POST /admin/users error', e);
-    res.status(500).json({ error: 'Unexpected error' });
+    return res.status(201).json({ ok: true, user, message: "Usuario creado" });
+  } catch (err) {
+    console.error("[POST /admin/users] error:", err);
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 
-/** Actualizar campos (email, role, descuentoPct, isActive) */
-router.patch('/users/:id', requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { email, role, descuentoPct, isActive } = req.body as {
-    email?: string;
-    role?: Role;
-    descuentoPct?: number;
-    isActive?: boolean;
-  };
-
-  const data: any = {};
-  if (email !== undefined) {
-    if (!isValidEmail(email)) return res.status(400).json({ error: 'email inválido' });
-    data.email = email.trim().toLowerCase();
-  }
-  if (role !== undefined) {
-    if (role !== 'admin' && role !== 'user') return res.status(400).json({ error: 'role inválido' });
-    data.role = role;
-  }
-  if (descuentoPct !== undefined) data.descuentoPct = clampPct(descuentoPct);
-  if (isActive !== undefined) data.isActive = Boolean(isActive);
-
+/* ========== PATCH /admin/users/:id  (editar datos básicos) ========== */
+router.patch("/users/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const updated = await prisma.user.update({
+    const id = String(req.params.id);
+    const { email, role, descuentoPct, isActive } = (req.body || {}) as {
+      email?: string;
+      role?: UserRole;
+      descuentoPct?: number;
+      isActive?: boolean;
+    };
+
+    // Solo incluimos lo que venga definido
+    const data: any = {};
+    if (typeof email === "string") data.email = email;
+    if (role === "admin" || role === "user") data.role = role;
+    if (Number.isFinite(descuentoPct)) data.descuentoPct = descuentoPct;
+    if (typeof isActive === "boolean") data.isActive = isActive;
+
+    const user = await prisma.user.update({
       where: { id },
       data,
       select: {
-        id: true, email: true, role: true, descuentoPct: true, isActive: true,
-        mustChangePassword: true, passwordUpdatedAt: true,
-        lastPasswordResetAt: true, lastPasswordResetBy: true,
-        createdAt: true, updatedAt: true,
+        id: true,
+        email: true,
+        role: true,
+        descuentoPct: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
-    res.json(updated);
-  } catch (e: any) {
-    if (e.code === 'P2002') return res.status(409).json({ error: 'Email ya en uso' });
-    if (e.code === 'P2025') return res.status(404).json({ error: 'Usuario no encontrado' });
-    console.error('PATCH /admin/users/:id error', e);
-    res.status(500).json({ error: 'Unexpected error' });
+
+    return res.json({ ok: true, user, message: "Usuario actualizado" });
+  } catch (err) {
+    console.error("[PATCH /admin/users/:id] error:", err);
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 
-/** Resetear contraseña (manual o auto) + forzar cambio al próximo login */
-router.post('/users/:id/reset-password', requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { newPassword } = req.body as { newPassword?: string };
+/* ========== POST /admin/users/:id/reset-password  (resetear/emitir temporal) ========== */
+router.post(
+  "/users/:id/reset-password",
+  requireAuth,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const { newPassword } = (req.body || {}) as { newPassword?: string };
 
-  const plain = newPassword && typeof newPassword === 'string' && newPassword.length >= 6
-    ? newPassword
-    : randomPassword(10);
+      // Genera una temporal si no viene
+      const temp =
+        newPassword ||
+        Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-4);
 
-  const passwordHash = await bcrypt.hash(plain, 10);
-  try {
-    const now = new Date();
-    await prisma.user.update({
-      where: { id },
-      data: {
-        passwordHash,
-        mustChangePassword: true,         // ← obliga a cambiarla tras login
-        // passwordUpdatedAt se setea cuando el propio usuario la cambie en /auth/change-password
-        lastPasswordResetAt: now,
-        lastPasswordResetBy: req.auth?.email ?? null,
-      },
-      select: { id: true },
-    });
-    res.json({
-      ok: true,
-      message: newPassword ? 'Contraseña actualizada' : 'Contraseña temporal generada',
-      temporaryPassword: newPassword ? undefined : plain,
-    });
-  } catch (e: any) {
-    if (e.code === 'P2025') return res.status(404).json({ error: 'Usuario no encontrado' });
-    console.error('POST /admin/users/:id/reset-password error', e);
-    res.status(500).json({ error: 'Unexpected error' });
+      const hash = await bcrypt.hash(temp, 10);
+
+      const user = await prisma.user.update({
+        where: { id },
+        data: {
+          passwordHash: hash,
+          // ⚠️ Nada de passwordUpdatedAt/lastPasswordResetAt/by
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          descuentoPct: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return res.json({
+        ok: true,
+        user,
+        temporaryPassword: newPassword ? undefined : temp,
+        message: newPassword
+          ? "Contraseña actualizada"
+          : "Contraseña temporal generada",
+      });
+    } catch (err) {
+      console.error("[POST /admin/users/:id/reset-password] error:", err);
+      return res.status(500).json({ error: "Error interno" });
+    }
   }
-});
+);
 
 export default router;

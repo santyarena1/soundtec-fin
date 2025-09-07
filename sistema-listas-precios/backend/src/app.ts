@@ -12,9 +12,14 @@ import priceitemsRouter from './modules/priceitems/priceitems.routes';
 import adminUsersRouter from './admin/admin.users.routes';
 
 const app = express();
+const allowed = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim());
+
+app.use(cors({ origin: allowed, credentials: true }));
 
 // Middlewares base
-app.use(cors());
+app.use(cors({ origin: allowed, credentials: true }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 

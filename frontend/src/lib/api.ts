@@ -1,4 +1,17 @@
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:3000";
+interface ImportMetaEnv {
+  VITE_API_BASE_URL?: string;
+}
+
+// Augment the global ImportMeta interface
+declare global {
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// axios.create({ baseURL: API_BASE, ... })
+
 
 function getToken() {
   try { return localStorage.getItem("token"); } catch { return null; }
