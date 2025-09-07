@@ -1,5 +1,5 @@
 ﻿import express from 'express';
-import cors from 'cors';
+import cors, { CorsOptions, CorsOptionsDelegate } from 'cors';
 import { errorHandler } from './middleware/errorHandler';
 import { prisma } from './db/connection';
 
@@ -12,14 +12,57 @@ import priceitemsRouter from './modules/priceitems/priceitems.routes';
 import adminUsersRouter from './admin/admin.users.routes';
 
 const app = express();
-const allowed = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-  .split(',')
-  .map(s => s.trim());
 
-app.use(cors({ origin: allowed, credentials: true }));
+/**
+ * Lista blanca de orígenes permitidos para CORS.
+ * En Render seteá CORS_ORIGIN con una lista separada por comas. Ej:
+ *   http://localhost:5173,https://soundtec-fin.vercel.app
+ */
+const CORS_ENV =
+  process.env.CORS_ORIGIN ??
+  'http://localhost:5173,https://soundtec-fin.vercel.app';
 
-// Middlewares base
-app.use(cors({ origin: allowed, credentials: true }));
+const ALLOWED_ORIGINS = CORS_ENV.split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// Evita cache incorrecto de CORS en proxies/CDN
+app.use((_, res, next) => {
+  res.setHeader('Vary', 'Origin');
+  next();
+});
+
+/**
+ * CORS + preflight primero, antes de cualquier router.
+ * Usamos Bearer token, así que credentials = false.
+ */
+const corsOptions: CorsOptions | CorsOptionsDelegate = (req, cb) => {
+  const origin = req.headers['origin'] as string | undefined;
+  // Permite herramientas sin Origin (curl/Postman)
+  if (!origin) {
+    return cb(null, {
+      origin: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: false,
+      optionsSuccessStatus: 204,
+    } as CorsOptions);
+  }
+
+  const ok = ALLOWED_ORIGINS.includes(origin);
+  cb(null, {
+    origin: ok,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false, // no cookies
+    optionsSuccessStatus: 204,
+  } as CorsOptions);
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // responde preflight
+
+// Parsers
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -31,7 +74,9 @@ app.get('/dbtest', async (_req, res, next) => {
   try {
     const count = await prisma.user.count();
     res.json({ ok: true, users: count });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Rutas
@@ -47,4 +92,3 @@ app.use('/admin', adminUsersRouter);
 app.use(errorHandler);
 
 export default app;
-
